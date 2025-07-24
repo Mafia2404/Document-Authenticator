@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Authenticator</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f7f6; margin: 0; padding: 2rem; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        h1 { color: #333; }
+        p { color: #666; }
+        input[type="file"] { border: 2px dashed #ddd; padding: 1rem; border-radius: 8px; width: 95%; margin-bottom: 1rem; }
+        button { background-color: #007bff; color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: background-color 0.2s; }
+        button:hover { background-color: #0056b3; }
+        .results { text-align: left; margin-top: 2rem; }
+        .result-section { background: #f9f9f9; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
+        .result-section h3 { margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 0.5rem; }
+        #forgery-result.authentic { color: #28a745; font-weight: bold; }
+        #forgery-result.tampered { color: #dc3545; font-weight: bold; }
+        #ocr-list { list-style-type: none; padding-left: 0; }
+        #ocr-list li { background: #fff; border: 1px solid #eee; padding: 0.5rem; border-radius: 4px; margin-bottom: 0.5rem; }
+        .loader { display: none; margin: 1rem auto; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Document Authenticator</h1>
+        <p>Upload an image of a document to check for forgery and extract text.</p>
+        
+        <input type="file" id="image-input" accept="image/*">
+        <button id="analyze-button">Analyze Document</button>
+
+        <div class="loader" id="loader"></div>
+
+        <div class="results" id="results-container" style="display: none;">
+            <div class="result-section">
+                <h3>Forgery Analysis</h3>
+                <p id="forgery-result"></p>
+            </div>
+            <div class="result-section">
+                <h3>Extracted Text (OCR)</h3>
+                <ul id="ocr-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('image-input');
+        const analyzeButton = document.getElementById('analyze-button');
+        const loader = document.getElementById('loader');
+        const resultsContainer = document.getElementById('results-container');
+        const forgeryResultEl = document.getElementById('forgery-result');
+        const ocrListEl = document.getElementById('ocr-list');
+        
+        const API_URL = "http://127.0.0.1:8000/analyze/";
+
+        analyzeButton.addEventListener('click', async () => {
+            const file = imageInput.files[0];
+            if (!file) {
+                alert("Please select an image file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            loader.style.display = 'block';
+            resultsContainer.style.display = 'none';
+            forgeryResultEl.textContent = '';
+            ocrListEl.innerHTML = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Display Forgery Analysis
+                const forgeryData = data.forgery_analysis;
+                if (forgeryData.is_tampered) {
+                    forgeryResultEl.textContent = `Result: Tampered (Confidence: ${forgeryData.tampered_confidence_score})`;
+                    forgeryResultEl.className = 'tampered';
+                } else {
+                    forgeryResultEl.textContent = `Result: Authentic (Tampering Score: ${forgeryData.tampered_confidence_score})`;
+                    forgeryResultEl.className = 'authentic';
+                }
+                
+                // Display OCR Results
+                const ocrData = data.ocr_results;
+                if (ocrData.length === 0) {
+                    const li = document.createElement('li');
+                    li.textContent = "No text found in the image.";
+                    ocrListEl.appendChild(li);
+                } else {
+                    ocrData.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = `"${item.text}" (Confidence: ${item.confidence})`;
+                        ocrListEl.appendChild(li);
+                    });
+                }
+                
+                resultsContainer.style.display = 'block';
+
+            } catch (error) {
+                console.error("Error analyzing document:", error);
+                alert("An error occurred. Check the console for details.");
+            } finally {
+                loader.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
