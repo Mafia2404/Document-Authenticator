@@ -1,7 +1,7 @@
 # Document-Authenticator
 # End-to-End Document Authenticator
 
-![Live Demo GIF](link_to_your_gif_here.gif)
+<img src="Document Authenticator and 12 more pages - Personal - Microsoft​ Edge 24-07-2025 22_09_15.png"/><br><img src="Document Authenticator and 12 more pages - Personal - Microsoft​ Edge 24-07-2025 22_15_45.png"/>
 
 This project is a full-stack deep learning application that analyzes document images to detect digital tampering and extracts text content using Optical Character Recognition (OCR). The entire machine learning lifecycle is demonstrated, from data preparation and model training to final deployment via a REST API with a web-based user interface.
 
